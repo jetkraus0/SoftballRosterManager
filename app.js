@@ -30,9 +30,9 @@ function parseSpotifyId(url) {
   return m ? m[1] : null;
 }
 
-function embedUrl(spotifyUrl) {
+function embedUrl(spotifyUrl, autoplay = false) {
   const id = parseSpotifyId(spotifyUrl);
-  return id ? `https://open.spotify.com/embed/track/${id}?utm_source=generator&theme=0` : null;
+  return id ? `https://open.spotify.com/embed/track/${id}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}` : null;
 }
 
 function isValidSpotify(url) {
@@ -102,7 +102,7 @@ function renderRoster() {
 }
 
 // ── Game Rendering ─────────────────────────────────────────────────────────
-function renderGame() {
+function renderGame(autoplay = false) {
   const view = document.getElementById('game-view');
 
   if (!state.players.length) {
@@ -124,7 +124,7 @@ function renderGame() {
   const p     = state.players[state.batterIndex];
   const total = state.players.length;
   const next  = state.players[(state.batterIndex + 1) % total];
-  const embed = p.spotifyUrl ? embedUrl(p.spotifyUrl) : null;
+  const embed = p.spotifyUrl ? embedUrl(p.spotifyUrl, autoplay) : null;
 
   view.innerHTML = `
     <div class="now-batting-label">Now Batting</div>
@@ -163,7 +163,7 @@ function navigate(dir) {
   if (!total) return;
   state.batterIndex = ((state.batterIndex + dir) + total) % total;
   saveState();
-  renderGame();
+  renderGame(true);
 }
 
 function resetBatter() {

@@ -325,25 +325,44 @@ function handleSubmit(e) {
 
 // ── Share / Import ─────────────────────────────────────────────────────────
 function encodeRoster(players) {
-  return btoa(JSON.stringify(players))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  // TextEncoder handles any Unicode characters in names/songs
+  const json = JSON.stringify(players);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 function decodeRoster(str) {
   const pad = str.replace(/-/g, '+').replace(/_/g, '/');
   const padded = pad + '='.repeat((4 - pad.length % 4) % 4);
-  return JSON.parse(atob(padded));
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function extractRosterParam(raw) {
+  const s = raw.trim();
+  // Try as full URL first
+  try { return new URL(s).searchParams.get('roster'); } catch (_) {}
+  // Try extracting ?roster= from a partial URL / query string
+  const m = s.match(/[?&]roster=([^&]+)/);
+  if (m) return m[1];
+  // Try treating the whole string as the bare encoded value
+  try { const p = decodeRoster(s); if (Array.isArray(p) && p.length) return s; } catch (_) {}
+  return null;
 }
 
 function promptImportLink() {
   const raw = prompt('Paste a Walk-Up roster link:');
   if (!raw) return;
   try {
-    const param = new URL(raw.trim()).searchParams.get('roster');
-    if (!param) throw new Error();
+    const param = extractRosterParam(raw);
+    if (!param) throw new Error('no param');
     const players = decodeRoster(param);
-    if (!Array.isArray(players) || !players.length) throw new Error();
-    if (!players.every(p => p && typeof p.name === 'string')) throw new Error();
+    if (!Array.isArray(players) || !players.length) throw new Error('empty');
+    if (!players.every(p => p && typeof p.name === 'string')) throw new Error('invalid');
     importPending = players;
     const banner = document.getElementById('import-banner');
     document.getElementById('import-desc').textContent =
@@ -351,7 +370,7 @@ function promptImportLink() {
     banner.classList.remove('hidden');
     requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('visible')));
   } catch (_) {
-    showToast('Invalid roster link.');
+    showToast('Invalid roster link — paste the full URL.');
   }
 }
 
@@ -360,7 +379,12 @@ function shareRoster() {
     showToast('Add players first before sharing.');
     return;
   }
-  const url = `${location.origin}${location.pathname}?roster=${encodeRoster(state.players)}`;
+  let encoded;
+  try { encoded = encodeRoster(state.players); } catch (_) {
+    showToast('Could not encode roster.');
+    return;
+  }
+  const url = `${location.origin}${location.pathname}?roster=${encoded}`;
 
   if (navigator.share) {
     navigator.share({

@@ -1,4 +1,4 @@
-const CACHE = 'walkup-v9';
+const CACHE = 'walkup-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
   if (e.request.url.includes('spotify.com')) return;
 
   e.respondWith(
-    caches.match(e.request)
+    caches.match(e.request, { ignoreSearch: true })
       .then(cached => cached || fetch(e.request))
   );
 });

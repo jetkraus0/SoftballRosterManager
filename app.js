@@ -36,6 +36,7 @@ function isValidSpotify(url) {
 
 // ── Spotify playback (postMessage, no IFrame API) ──────────────────────────
 let isPlaying = false;
+let trackLoading = false; // blocks "paused" messages fired during track load
 
 function loadTrack(trackId, autoplay) {
   const iframe = document.getElementById('spotify-iframe');
@@ -45,6 +46,10 @@ function loadTrack(trackId, autoplay) {
   iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
   isPlaying = autoplay;
   refreshPlayBtn();
+  if (autoplay) {
+    trackLoading = true;
+    setTimeout(() => { trackLoading = false; }, 3000);
+  }
 }
 
 function togglePlay() {
@@ -61,7 +66,12 @@ window.addEventListener('message', e => {
     if (!String(e.origin).includes('spotify')) return;
     const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
     const paused = d?.payload?.is_paused ?? d?.data?.is_paused;
-    if (typeof paused === 'boolean') { isPlaying = !paused; refreshPlayBtn(); }
+    if (typeof paused === 'boolean') {
+      if (trackLoading && paused) return; // ignore "paused" while track is loading
+      if (!paused) trackLoading = false;  // playing confirmed — clear load flag
+      isPlaying = !paused;
+      refreshPlayBtn();
+    }
   } catch (_) {}
 });
 
@@ -376,6 +386,26 @@ function decodeRoster(str) {
   const pad = str.replace(/-/g, '+').replace(/_/g, '/');
   const padded = pad + '='.repeat((4 - pad.length % 4) % 4);
   return JSON.parse(atob(padded));
+}
+
+function promptImportLink() {
+  const raw = prompt('Paste a Walk-Up roster link:');
+  if (!raw) return;
+  try {
+    const param = new URL(raw.trim()).searchParams.get('roster');
+    if (!param) throw new Error();
+    const players = decodeRoster(param);
+    if (!Array.isArray(players) || !players.length) throw new Error();
+    if (!players.every(p => p && typeof p.name === 'string')) throw new Error();
+    importPending = players;
+    const banner = document.getElementById('import-banner');
+    document.getElementById('import-desc').textContent =
+      `${players.length} player${players.length !== 1 ? 's' : ''}`;
+    banner.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('visible')));
+  } catch (_) {
+    showToast('Invalid roster link.');
+  }
 }
 
 function shareRoster() {

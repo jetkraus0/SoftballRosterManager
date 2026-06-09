@@ -404,7 +404,7 @@ body {
 
 .spotify-wrap {
   width: 100%;
-  height: clamp(64px, 10dvh, 100px);
+  height: clamp(140px, 20dvh, 175px);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 3px 14px rgba(0,0,0,0.4);
@@ -414,7 +414,7 @@ body {
 .spotify-wrap iframe {
   display: block;
   width: 100%;
-  height: clamp(64px, 10dvh, 100px);
+  height: clamp(140px, 20dvh, 175px);
   border-radius: 12px;
 }
 

@@ -36,7 +36,6 @@ function isValidSpotify(url) {
 
 // ── Spotify playback (postMessage, no IFrame API) ──────────────────────────
 let isPlaying = false;
-let trackLoading = false; // blocks "paused" messages fired during track load
 
 function loadTrack(trackId, autoplay) {
   const iframe = document.getElementById('spotify-iframe');
@@ -44,12 +43,9 @@ function loadTrack(trackId, autoplay) {
   iframe.dataset.trackId = trackId;
   // Sync src update within user gesture — iOS grants autoplay permission
   iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
-  isPlaying = autoplay;
+  // Always reset button to play; message handler flips it to pause once playback confirms
+  isPlaying = false;
   refreshPlayBtn();
-  if (autoplay) {
-    trackLoading = true;
-    setTimeout(() => { trackLoading = false; }, 3000);
-  }
 }
 
 function togglePlay() {
@@ -66,12 +62,7 @@ window.addEventListener('message', e => {
     if (!String(e.origin).includes('spotify')) return;
     const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
     const paused = d?.payload?.is_paused ?? d?.data?.is_paused;
-    if (typeof paused === 'boolean') {
-      if (trackLoading && paused) return; // ignore "paused" while track is loading
-      if (!paused) trackLoading = false;  // playing confirmed — clear load flag
-      isPlaying = !paused;
-      refreshPlayBtn();
-    }
+    if (typeof paused === 'boolean') { isPlaying = !paused; refreshPlayBtn(); }
   } catch (_) {}
 });
 

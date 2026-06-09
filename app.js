@@ -73,15 +73,23 @@ function loadTrack(trackId, autoplay) {
   if (!iframe) return;
   iframe.dataset.trackId = trackId;
 
-  if (embedController) {
+  if (autoplay) {
+    // Reload the iframe src synchronously within the user gesture so iOS
+    // grants autoplay permission. setTimeout-based play() breaks this.
+    embedController = null;
     isPlaying = false;
     refreshPlayBtn();
+    iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&autoplay=1`;
+    iframe.addEventListener('load', function once() {
+      iframe.removeEventListener('load', once);
+      if (window._SpotifyAPI) initController(false);
+    });
+  } else if (embedController) {
     embedController.loadUri(`spotify:track:${trackId}`);
-    if (autoplay) setTimeout(() => embedController.play(), 500);
+    isPlaying = false;
+    refreshPlayBtn();
   } else {
-    // Controller not ready yet — recreate it
-    embedController = null;
-    initController(autoplay);
+    initController(false);
   }
 }
 

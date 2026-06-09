@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!-- Run this file locally to generate icon PNGs, then delete it -->
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+<canvas id="c192" width="192" height="192" style="border:1px solid #ccc"></canvas>
+<canvas id="c512" width="512" height="512" style="border:1px solid #ccc"></canvas>
+<button onclick="download()">Download Both Icons</button>
+<script>
+function drawIcon(canvas) {
+  const s = canvas.width;
+  const ctx = canvas.getContext('2d');
+  const scale = s / 100;
+
+  ctx.fillStyle = '#0d0d1a';
+  roundRect(ctx, 0, 0, s, s, 22 * scale);
+  ctx.fill();
+
+  // softball
+  ctx.beginPath();
+  ctx.arc(50 * scale, 46 * scale, 28 * scale, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff3f3f';
+  ctx.fill();
+
+  // stitching
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2.5 * scale;
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(33 * scale, 36 * scale);
+  ctx.bezierCurveTo(42 * scale, 36 * scale, 42 * scale, 56 * scale, 33 * scale, 56 * scale);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(67 * scale, 36 * scale);
+  ctx.bezierCurveTo(58 * scale, 36 * scale, 58 * scale, 56 * scale, 67 * scale, 56 * scale);
+  ctx.stroke();
+
+  // music note
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${20 * scale}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('♪', 50 * scale, 48 * scale);
+
+  // wordmark
+  ctx.fillStyle = '#9999bb';
+  ctx.font = `bold ${9 * scale}px Arial`;
+  ctx.letterSpacing = `${1 * scale}px`;
+  ctx.fillText('WALK-UP', 50 * scale, 88 * scale);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+
+function download() {
+  ['192', '512'].forEach(size => {
+    const a = document.createElement('a');
+    a.download = `icon-${size}.png`;
+    a.href = document.getElementById('c' + size).toDataURL('image/png');
+    a.click();
+  });
+}
+</script>
+</body>
+</html>

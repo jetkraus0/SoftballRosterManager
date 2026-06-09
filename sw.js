@@ -1,11 +1,12 @@
-const CACHE = 'walkup-v5';
+const CACHE = 'walkup-v6';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './icon.svg'
+  './icon.svg',
+  './icon-192.png'
 ];
 
 self.addEventListener('install', e => {

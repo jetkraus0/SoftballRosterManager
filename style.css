@@ -332,31 +332,37 @@ body {
 /* ─── Game Tab ─── */
 #tab-game {
   display: none;
-  padding: 6px 14px 16px;
+  padding: 0;
+  overflow: hidden;
 }
 
 #tab-game.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 #game-view {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 1.8dvh, 18px);
+  padding: clamp(4px, 1.2dvh, 12px) 14px;
+  width: 100%;
+  overflow: hidden;
 }
 
 .now-batting-label {
-  font-size: 10px;
+  font-size: clamp(9px, 1.3dvh, 12px);
   font-weight: 800;
   letter-spacing: 4px;
   color: var(--red);
   text-transform: uppercase;
-  margin-bottom: 2px;
-  margin-top: 2px;
 }
 
 .batter-number-display {
-  font-size: 72px;
+  font-size: clamp(52px, 11dvh, 104px);
   font-weight: 900;
   color: var(--gold);
   line-height: 1;
@@ -366,21 +372,19 @@ body {
 }
 
 .batter-name-display {
-  font-size: 26px;
+  font-size: clamp(18px, 3.8dvh, 36px);
   font-weight: 900;
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 2px;
   text-align: center;
   line-height: 1.1;
-  margin-bottom: 2px;
   animation: popIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .batter-counter {
-  font-size: 11px;
+  font-size: clamp(10px, 1.5dvh, 13px);
   color: var(--muted);
-  margin-bottom: 8px;
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -390,12 +394,19 @@ body {
   to   { opacity: 1;   transform: scale(1); }
 }
 
+#spotify-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(4px, 1.5dvh, 12px);
+  width: 100%;
+}
+
 .spotify-wrap {
   width: 100%;
-  height: 80px;
+  height: clamp(64px, 10dvh, 100px);
   border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 8px;
   box-shadow: 0 3px 14px rgba(0,0,0,0.4);
   flex-shrink: 0;
 }
@@ -403,14 +414,14 @@ body {
 .spotify-wrap iframe {
   display: block;
   width: 100%;
-  height: 80px;
+  height: clamp(64px, 10dvh, 100px);
   border-radius: 12px;
 }
 
 /* ─── Custom large play/pause button ─── */
 .btn-play-pause {
-  width: 76px;
-  height: 76px;
+  width: clamp(60px, 10dvh, 90px);
+  height: clamp(60px, 10dvh, 90px);
   border-radius: 50%;
   background: var(--red);
   border: none;
@@ -421,13 +432,13 @@ body {
   cursor: pointer;
   box-shadow: 0 5px 24px rgba(255, 63, 63, 0.5);
   transition: transform 0.12s, box-shadow 0.12s;
-  margin: 0 auto 10px;
+  margin: 0 auto;
   flex-shrink: 0;
 }
 
 .btn-play-pause svg {
-  width: 38px;
-  height: 38px;
+  width: clamp(28px, 5dvh, 45px);
+  height: clamp(28px, 5dvh, 45px);
 }
 
 .btn-play-pause:active {
@@ -452,15 +463,14 @@ body {
   display: flex;
   gap: 10px;
   width: 100%;
-  margin-bottom: 8px;
 }
 
 .btn-game-nav {
   flex: 1;
-  height: 52px;
+  height: clamp(44px, 7dvh, 62px);
   border-radius: var(--r);
   border: none;
-  font-size: 15px;
+  font-size: clamp(13px, 2dvh, 16px);
   font-weight: 800;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -497,7 +507,6 @@ body {
   justify-content: space-between;
   width: 100%;
   padding: 0 2px;
-  min-height: 28px;
 }
 
 .on-deck-row {

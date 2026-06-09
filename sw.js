@@ -1,4 +1,4 @@
-const CACHE = 'walkup-v1';
+const CACHE = 'walkup-v2';
 const ASSETS = [
   './',
   './index.html',

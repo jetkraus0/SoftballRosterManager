@@ -34,67 +34,36 @@ function isValidSpotify(url) {
   return !!parseSpotifyId(url);
 }
 
-// ── Spotify IFrame API controller ──────────────────────────────────────────
-let embedController = null;
-let isPlaying       = false;
-
-// Called by the Spotify script once it loads
-window.onSpotifyIframeApiReady = function(IFrameAPI) {
-  window._SpotifyAPI = IFrameAPI;
-  // If the game tab was already rendered, init now
-  const iframe = document.getElementById('spotify-iframe');
-  if (iframe) initController(false);
-};
-
-function initController(autoplay) {
-  const api    = window._SpotifyAPI;
-  const iframe = document.getElementById('spotify-iframe');
-  if (!api || !iframe) return;
-
-  const trackId = iframe.dataset.trackId;
-  if (!trackId) return;
-
-  api.createController(iframe, { uri: `spotify:track:${trackId}` }, ctrl => {
-    embedController = ctrl;
-    isPlaying = false;
-    refreshPlayBtn();
-
-    ctrl.addListener('playback_update', e => {
-      isPlaying = !e.data.isPaused;
-      refreshPlayBtn();
-    });
-
-    if (autoplay) ctrl.play();
-  });
-}
+// ── Spotify playback (postMessage, no IFrame API) ──────────────────────────
+let isPlaying = false;
 
 function loadTrack(trackId, autoplay) {
   const iframe = document.getElementById('spotify-iframe');
   if (!iframe) return;
   iframe.dataset.trackId = trackId;
-
-  if (embedController) {
-    // Call both synchronously so iOS considers play() within the user gesture
-    embedController.loadUri(`spotify:track:${trackId}`);
-    if (autoplay) embedController.play();
-    isPlaying = autoplay;
-    refreshPlayBtn();
-  } else {
-    // Controller not ready yet — reload src with autoplay flag so the
-    // iframe itself starts playing (user gesture is still active here)
-    iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
-    iframe.addEventListener('load', function once() {
-      iframe.removeEventListener('load', once);
-      if (window._SpotifyAPI) initController(false);
-    });
-    isPlaying = false;
-    refreshPlayBtn();
-  }
+  // Sync src update within user gesture — iOS grants autoplay permission
+  iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
+  isPlaying = autoplay;
+  refreshPlayBtn();
 }
 
 function togglePlay() {
-  if (embedController) embedController.togglePlay();
+  const iframe = document.getElementById('spotify-iframe');
+  if (!iframe) return;
+  iframe.contentWindow.postMessage({ command: 'toggle' }, '*');
+  isPlaying = !isPlaying;
+  refreshPlayBtn();
 }
+
+// Keep play state in sync when Spotify's own controls are used
+window.addEventListener('message', e => {
+  try {
+    if (!String(e.origin).includes('spotify')) return;
+    const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    const paused = d?.payload?.is_paused ?? d?.data?.is_paused;
+    if (typeof paused === 'boolean') { isPlaying = !paused; refreshPlayBtn(); }
+  } catch (_) {}
+});
 
 function playSVG() {
   return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
@@ -260,27 +229,22 @@ function updateBatter(autoplay) {
       loadTrack(trackId, autoplay);
     } else {
       // Create iframe + play button (first time, or after a no-song player)
-      embedController = null;
       isPlaying = false;
       section.innerHTML = `
         <div class="spotify-wrap">
           <iframe id="spotify-iframe" data-track-id="${trackId}"
             src="https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0"
-            width="100%" height="64" frameborder="0"
+            width="100%" height="80" frameborder="0"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"></iframe>
         </div>
         <button id="btn-play-pause" class="btn-play-pause" onclick="togglePlay()" aria-label="Play">
           ${playSVG()}
         </button>`;
-      if (window._SpotifyAPI) initController(autoplay);
     }
   } else {
     // Player has no song
-    if (existingFrame) {
-      embedController = null;
-      isPlaying = false;
-    }
+    if (existingFrame) isPlaying = false;
     if (section) section.innerHTML = `
       <div class="no-song-card">
         🎵 No song set for this player.<br>Add one in the <strong>Roster</strong> tab.

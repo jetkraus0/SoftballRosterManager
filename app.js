@@ -73,23 +73,22 @@ function loadTrack(trackId, autoplay) {
   if (!iframe) return;
   iframe.dataset.trackId = trackId;
 
-  if (autoplay) {
-    // Reload the iframe src synchronously within the user gesture so iOS
-    // grants autoplay permission. setTimeout-based play() breaks this.
-    embedController = null;
-    isPlaying = false;
+  if (embedController) {
+    // Call both synchronously so iOS considers play() within the user gesture
+    embedController.loadUri(`spotify:track:${trackId}`);
+    if (autoplay) embedController.play();
+    isPlaying = autoplay;
     refreshPlayBtn();
-    iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0&autoplay=1`;
+  } else {
+    // Controller not ready yet — reload src with autoplay flag so the
+    // iframe itself starts playing (user gesture is still active here)
+    iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
     iframe.addEventListener('load', function once() {
       iframe.removeEventListener('load', once);
       if (window._SpotifyAPI) initController(false);
     });
-  } else if (embedController) {
-    embedController.loadUri(`spotify:track:${trackId}`);
     isPlaying = false;
     refreshPlayBtn();
-  } else {
-    initController(false);
   }
 }
 
@@ -215,8 +214,10 @@ function renderGame(autoplay = false) {
         <button class="btn-game-nav btn-prev" onclick="navigate(-1)">← Prev</button>
         <button class="btn-game-nav btn-next" onclick="navigate(1)">Next →</button>
       </div>
-      <div id="on-deck" class="on-deck-row"></div>
-      <button class="btn-reset" onclick="resetBatter()">↺ Reset to First Batter</button>`;
+      <div class="bottom-row">
+        <div id="on-deck" class="on-deck-row"></div>
+        <button class="btn-reset" onclick="resetBatter()">↺ Reset</button>
+      </div>`;
   }
 
   updateBatter(autoplay);
@@ -265,7 +266,7 @@ function updateBatter(autoplay) {
         <div class="spotify-wrap">
           <iframe id="spotify-iframe" data-track-id="${trackId}"
             src="https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0"
-            width="100%" height="80" frameborder="0"
+            width="100%" height="64" frameborder="0"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"></iframe>
         </div>

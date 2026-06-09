@@ -1,4 +1,4 @@
-const CACHE = 'walkup-v10';
+const CACHE = 'walkup-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -28,7 +28,7 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Let Spotify embeds go straight to network
+  // Let Spotify requests go straight to network (embeds + oEmbed API)
   if (e.request.url.includes('spotify.com')) return;
 
   e.respondWith(

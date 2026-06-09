@@ -465,8 +465,21 @@ function init() {
     if (e.target === document.getElementById('modal-overlay')) hideModal();
   });
   document.getElementById('player-form').addEventListener('submit', handleSubmit);
-  document.getElementById('input-spotify').addEventListener('input', e => {
-    setSpotifyStatus(e.target.value.trim());
+  document.getElementById('input-spotify').addEventListener('input', async e => {
+    const url = e.target.value.trim();
+    setSpotifyStatus(url);
+    if (!isValidSpotify(url)) return;
+    const songInput = document.getElementById('input-song');
+    if (songInput.value.trim()) return; // don't overwrite what user already typed
+    songInput.placeholder = 'Fetching…';
+    try {
+      const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title && !songInput.value.trim()) songInput.value = data.title;
+      }
+    } catch (_) {}
+    songInput.placeholder = 'Eye of the Tiger';
   });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

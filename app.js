@@ -393,6 +393,90 @@ function handleSubmit(e) {
   renderRoster();
 }
 
+// ── Share / Import ─────────────────────────────────────────────────────────
+function encodeRoster(players) {
+  return btoa(JSON.stringify(players))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function decodeRoster(str) {
+  const pad = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = pad + '='.repeat((4 - pad.length % 4) % 4);
+  return JSON.parse(atob(padded));
+}
+
+function shareRoster() {
+  if (!state.players.length) {
+    showToast('Add players first before sharing.');
+    return;
+  }
+  const url = `${location.origin}${location.pathname}?roster=${encodeRoster(state.players)}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'Walk-Up Songs Roster',
+      text: `Softball roster — ${state.players.length} players`,
+      url
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url)
+      .then(() => showToast('Link copied!'))
+      .catch(() => { prompt('Copy this link:', url); });
+  }
+}
+
+// Toast notification
+function showToast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, 2800);
+}
+
+// Import from URL
+let importPending = null;
+
+function checkImportUrl() {
+  const param = new URLSearchParams(location.search).get('roster');
+  if (!param) return;
+  history.replaceState({}, '', location.pathname); // clean URL
+  try {
+    const players = decodeRoster(param);
+    if (!Array.isArray(players) || !players.length) return;
+    if (!players.every(p => p && typeof p.name === 'string')) return;
+    importPending = players;
+    const banner = document.getElementById('import-banner');
+    document.getElementById('import-desc').textContent =
+      `${players.length} player${players.length !== 1 ? 's' : ''}`;
+    banner.classList.remove('hidden');
+    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('visible')));
+  } catch (_) {}
+}
+
+function dismissImport() {
+  importPending = null;
+  const banner = document.getElementById('import-banner');
+  banner.classList.remove('visible');
+  setTimeout(() => banner.classList.add('hidden'), 350);
+}
+
+function confirmImport() {
+  if (!importPending) return;
+  const count = importPending.length;
+  state.players = importPending;
+  state.batterIndex = 0;
+  saveState();
+  dismissImport();
+  switchTab('roster');
+  showToast(`✓ Imported ${count} players`);
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────
 function init() {
   loadState();
@@ -414,6 +498,7 @@ function init() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   renderRoster();
+  checkImportUrl();
 }
 
 document.addEventListener('DOMContentLoaded', init);

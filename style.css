@@ -63,7 +63,28 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px;
+  padding: 0 16px 0 20px;
+}
+
+.btn-header-action {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.btn-header-action:active {
+  background: var(--bg3);
+  color: var(--text);
 }
 
 .header-icon {
@@ -643,6 +664,119 @@ input::placeholder {
   background: var(--bg3);
   color: var(--text2);
   border: 1px solid var(--border);
+}
+
+/* ─── Import Banner ─── */
+#import-banner {
+  position: fixed;
+  top: calc(var(--header-h) + var(--safe-top));
+  left: 0;
+  right: 0;
+  z-index: 150;
+  padding: 8px 14px;
+  transform: translateY(-130%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#import-banner.hidden {
+  display: none;
+}
+
+#import-banner.visible {
+  transform: translateY(0);
+}
+
+.import-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+}
+
+.import-emoji {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.import-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.import-text strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+#import-desc {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.import-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-import-no,
+.btn-import-yes {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.btn-import-no:active,
+.btn-import-yes:active {
+  transform: scale(0.93);
+}
+
+.btn-import-no {
+  background: var(--bg2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.btn-import-yes {
+  background: var(--red);
+  color: white;
+}
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + 18px + var(--safe-bot));
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1000;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* ─── Scrollbar (desktop) ─── */

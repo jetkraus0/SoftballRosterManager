@@ -30,13 +30,77 @@ function parseSpotifyId(url) {
   return m ? m[1] : null;
 }
 
-function embedUrl(spotifyUrl, autoplay = false) {
-  const id = parseSpotifyId(spotifyUrl);
-  return id ? `https://open.spotify.com/embed/track/${id}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}` : null;
-}
-
 function isValidSpotify(url) {
   return !!parseSpotifyId(url);
+}
+
+// ── Spotify IFrame API controller ──────────────────────────────────────────
+let embedController = null;
+let isPlaying       = false;
+
+// Called by the Spotify script once it loads
+window.onSpotifyIframeApiReady = function(IFrameAPI) {
+  window._SpotifyAPI = IFrameAPI;
+  // If the game tab was already rendered, init now
+  const iframe = document.getElementById('spotify-iframe');
+  if (iframe) initController(false);
+};
+
+function initController(autoplay) {
+  const api    = window._SpotifyAPI;
+  const iframe = document.getElementById('spotify-iframe');
+  if (!api || !iframe) return;
+
+  const trackId = iframe.dataset.trackId;
+  if (!trackId) return;
+
+  api.createController(iframe, { uri: `spotify:track:${trackId}` }, ctrl => {
+    embedController = ctrl;
+    isPlaying = false;
+    refreshPlayBtn();
+
+    ctrl.addListener('playback_update', e => {
+      isPlaying = !e.data.isPaused;
+      refreshPlayBtn();
+    });
+
+    if (autoplay) ctrl.play();
+  });
+}
+
+function loadTrack(trackId, autoplay) {
+  const iframe = document.getElementById('spotify-iframe');
+  if (!iframe) return;
+  iframe.dataset.trackId = trackId;
+
+  if (embedController) {
+    isPlaying = false;
+    refreshPlayBtn();
+    embedController.loadUri(`spotify:track:${trackId}`);
+    if (autoplay) setTimeout(() => embedController.play(), 500);
+  } else {
+    // Controller not ready yet — recreate it
+    embedController = null;
+    initController(autoplay);
+  }
+}
+
+function togglePlay() {
+  if (embedController) embedController.togglePlay();
+}
+
+function playSVG() {
+  return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+}
+function pauseSVG() {
+  return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+}
+
+function refreshPlayBtn() {
+  const btn = document.getElementById('btn-play-pause');
+  if (!btn) return;
+  btn.innerHTML = isPlaying ? pauseSVG() : playSVG();
+  btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
 }
 
 // ── Utility ────────────────────────────────────────────────────────────────
@@ -44,6 +108,13 @@ function esc(str) {
   const d = document.createElement('div');
   d.appendChild(document.createTextNode(str ?? ''));
   return d.innerHTML;
+}
+
+function animatePop(el) {
+  if (!el) return;
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.style.animation = '';
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────────
@@ -71,9 +142,9 @@ function renderRoster() {
   }
 
   list.innerHTML = state.players.map((p, i) => {
-    const hasSong = p.spotifyUrl && isValidSpotify(p.spotifyUrl);
+    const hasSong  = p.spotifyUrl && isValidSpotify(p.spotifyUrl);
     const songLabel = p.songName || (hasSong ? 'Spotify linked' : 'No song set');
-    const numHtml = p.number !== ''
+    const numHtml   = p.number !== ''
       ? `#${esc(p.number)}`
       : '<span style="color:var(--muted);font-size:18px">—</span>';
 
@@ -102,10 +173,14 @@ function renderRoster() {
 }
 
 // ── Game Rendering ─────────────────────────────────────────────────────────
+// The game view keeps a stable DOM shell; only inner content updates on navigate.
+
 function renderGame(autoplay = false) {
   const view = document.getElementById('game-view');
 
   if (!state.players.length) {
+    embedController = null;
+    isPlaying = false;
     view.innerHTML = `
       <div class="empty-state">
         <span class="empty-emoji">🎵</span>
@@ -115,47 +190,93 @@ function renderGame(autoplay = false) {
     return;
   }
 
-  // Clamp index
   if (state.batterIndex >= state.players.length) {
     state.batterIndex = 0;
     saveState();
   }
 
-  const p     = state.players[state.batterIndex];
-  const total = state.players.length;
-  const next  = state.players[(state.batterIndex + 1) % total];
-  const embed = p.spotifyUrl ? embedUrl(p.spotifyUrl, autoplay) : null;
+  // Build stable shell on first render
+  if (!document.getElementById('batter-num')) {
+    view.innerHTML = `
+      <div class="now-batting-label">Now Batting</div>
+      <div id="batter-num"  class="batter-number-display">—</div>
+      <div id="batter-name" class="batter-name-display">—</div>
+      <div id="batter-counter" class="batter-counter">—</div>
+      <div id="spotify-section"></div>
+      <div class="game-nav">
+        <button class="btn-game-nav btn-prev" onclick="navigate(-1)">← Prev</button>
+        <button class="btn-game-nav btn-next" onclick="navigate(1)">Next →</button>
+      </div>
+      <div id="on-deck" class="on-deck-row"></div>
+      <button class="btn-reset" onclick="resetBatter()">↺ Reset to First Batter</button>`;
+  }
 
-  view.innerHTML = `
-    <div class="now-batting-label">Now Batting</div>
-    <div class="batter-number-display">${p.number !== '' ? '#' + esc(p.number) : '—'}</div>
-    <div class="batter-name-display">${esc(p.name)}</div>
-    <div class="batter-counter">Batter ${state.batterIndex + 1} of ${total}</div>
+  updateBatter(autoplay);
+}
 
-    ${embed
-      ? `<div class="spotify-wrap">
-           <iframe
-             src="${embed}"
-             width="100%" height="152"
-             frameborder="0"
-             allowfullscreen=""
-             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-             loading="lazy">
-           </iframe>
-         </div>`
-      : `<div class="no-song-card">🎵 No song set for this player.<br>Add one in the <strong>Roster</strong> tab.</div>`
+function updateBatter(autoplay) {
+  const p       = state.players[state.batterIndex];
+  const total   = state.players.length;
+  const trackId = p.spotifyUrl ? parseSpotifyId(p.spotifyUrl) : null;
+
+  // Animate and update batter display
+  const numEl     = document.getElementById('batter-num');
+  const nameEl    = document.getElementById('batter-name');
+  const counterEl = document.getElementById('batter-counter');
+  const deckEl    = document.getElementById('on-deck');
+
+  animatePop(numEl);
+  animatePop(nameEl);
+
+  if (numEl)     numEl.textContent     = p.number !== '' ? '#' + p.number : '—';
+  if (nameEl)    nameEl.textContent    = p.name.toUpperCase();
+  if (counterEl) counterEl.textContent = `Batter ${state.batterIndex + 1} of ${total}`;
+
+  if (deckEl) {
+    if (total > 1) {
+      const next = state.players[(state.batterIndex + 1) % total];
+      deckEl.innerHTML = `On Deck: <span>${next.number !== '' ? '#' + esc(next.number) + ' ' : ''}${esc(next.name)}</span>`;
+    } else {
+      deckEl.innerHTML = '';
     }
+  }
 
-    <div class="game-nav">
-      <button class="btn-game-nav btn-prev" onclick="navigate(-1)">← Prev</button>
-      <button class="btn-game-nav btn-next" onclick="navigate(1)">Next →</button>
-    </div>
+  // Update Spotify section
+  const section       = document.getElementById('spotify-section');
+  const existingFrame = document.getElementById('spotify-iframe');
 
-    ${total > 1
-      ? `<div class="on-deck-row">On Deck: <span>${next.number !== '' ? '#' + esc(next.number) + ' ' : ''}${esc(next.name)}</span></div>`
-      : ''}
-
-    <button class="btn-reset" onclick="resetBatter()">↺ Reset to First Batter</button>`;
+  if (trackId) {
+    if (existingFrame) {
+      // Best path: keep iframe, just switch track
+      loadTrack(trackId, autoplay);
+    } else {
+      // Create iframe + play button (first time, or after a no-song player)
+      embedController = null;
+      isPlaying = false;
+      section.innerHTML = `
+        <div class="spotify-wrap">
+          <iframe id="spotify-iframe" data-track-id="${trackId}"
+            src="https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0"
+            width="100%" height="80" frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"></iframe>
+        </div>
+        <button id="btn-play-pause" class="btn-play-pause" onclick="togglePlay()" aria-label="Play">
+          ${playSVG()}
+        </button>`;
+      if (window._SpotifyAPI) initController(autoplay);
+    }
+  } else {
+    // Player has no song
+    if (existingFrame) {
+      embedController = null;
+      isPlaying = false;
+    }
+    if (section) section.innerHTML = `
+      <div class="no-song-card">
+        🎵 No song set for this player.<br>Add one in the <strong>Roster</strong> tab.
+      </div>`;
+  }
 }
 
 function navigate(dir) {
@@ -169,7 +290,7 @@ function navigate(dir) {
 function resetBatter() {
   state.batterIndex = 0;
   saveState();
-  renderGame();
+  renderGame(false);
 }
 
 // ── Player CRUD ────────────────────────────────────────────────────────────
@@ -188,7 +309,7 @@ function openEdit(id) {
   const p = state.players.find(x => x.id === id);
   if (!p) return;
   editingId = id;
-  document.getElementById('modal-title').textContent   = 'Edit Player';
+  document.getElementById('modal-title').textContent = 'Edit Player';
   document.getElementById('input-number').value  = p.number;
   document.getElementById('input-name').value    = p.name;
   document.getElementById('input-song').value    = p.songName || '';
@@ -253,10 +374,7 @@ function handleSubmit(e) {
   const songName   = document.getElementById('input-song').value.trim();
   const spotifyUrl = document.getElementById('input-spotify').value.trim();
 
-  if (!name) {
-    document.getElementById('input-name').focus();
-    return;
-  }
+  if (!name) { document.getElementById('input-name').focus(); return; }
 
   if (spotifyUrl && !isValidSpotify(spotifyUrl)) {
     setSpotifyStatus(spotifyUrl);
@@ -279,32 +397,21 @@ function handleSubmit(e) {
 function init() {
   loadState();
 
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // FAB
   document.getElementById('btn-add-player').addEventListener('click', openAdd);
-
-  // Modal
   document.getElementById('btn-cancel').addEventListener('click', hideModal);
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-overlay')) hideModal();
   });
-
-  // Form
   document.getElementById('player-form').addEventListener('submit', handleSubmit);
-
-  // Spotify validation
   document.getElementById('input-spotify').addEventListener('input', e => {
     setSpotifyStatus(e.target.value.trim());
   });
 
-  // Service worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   renderRoster();
 }

@@ -373,13 +373,41 @@ body {
   width: 100%;
   border-radius: 13px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
 .spotify-wrap iframe {
   display: block;
   border-radius: 13px;
+}
+
+/* ─── Custom large play/pause button ─── */
+.btn-play-pause {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--red);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 32px rgba(255, 63, 63, 0.5);
+  transition: transform 0.12s, box-shadow 0.12s;
+  margin: 0 auto 20px;
+  flex-shrink: 0;
+}
+
+.btn-play-pause svg {
+  width: 52px;
+  height: 52px;
+}
+
+.btn-play-pause:active {
+  transform: scale(0.90);
+  box-shadow: 0 3px 16px rgba(255, 63, 63, 0.35);
 }
 
 .no-song-card {

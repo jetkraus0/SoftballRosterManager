@@ -390,17 +390,30 @@ body {
   to   { opacity: 1;   transform: scale(1); }
 }
 
-.spotify-wrap {
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
+/* hidden iframe — no visual styles needed */
+
+.song-info-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin-bottom: 8px;
-  box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+  max-width: 100%;
+  padding: 0 4px;
 }
 
-.spotify-wrap iframe {
-  display: block;
-  border-radius: 12px;
+.song-note {
+  font-size: 15px;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.song-label-text {
+  font-size: 14px;
+  color: var(--text2);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─── Custom large play/pause button ─── */

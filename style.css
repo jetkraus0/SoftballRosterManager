@@ -395,10 +395,6 @@ body {
 }
 
 #spotify-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(4px, 1.5dvh, 12px);
   width: 100%;
 }
 
@@ -418,33 +414,6 @@ body {
   border-radius: 12px;
 }
 
-/* ─── Custom large play/pause button ─── */
-.btn-play-pause {
-  width: clamp(60px, 10dvh, 90px);
-  height: clamp(60px, 10dvh, 90px);
-  border-radius: 50%;
-  background: var(--red);
-  border: none;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 5px 24px rgba(255, 63, 63, 0.5);
-  transition: transform 0.12s, box-shadow 0.12s;
-  margin: 0 auto;
-  flex-shrink: 0;
-}
-
-.btn-play-pause svg {
-  width: clamp(28px, 5dvh, 45px);
-  height: clamp(28px, 5dvh, 45px);
-}
-
-.btn-play-pause:active {
-  transform: scale(0.90);
-  box-shadow: 0 3px 12px rgba(255, 63, 63, 0.35);
-}
 
 .no-song-card {
   width: 100%;

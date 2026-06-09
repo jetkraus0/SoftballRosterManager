@@ -34,50 +34,13 @@ function isValidSpotify(url) {
   return !!parseSpotifyId(url);
 }
 
-// ── Spotify playback (postMessage, no IFrame API) ──────────────────────────
-let isPlaying = false;
-
+// ── Spotify playback ───────────────────────────────────────────────────────
 function loadTrack(trackId, autoplay) {
   const iframe = document.getElementById('spotify-iframe');
   if (!iframe) return;
   iframe.dataset.trackId = trackId;
   // Sync src update within user gesture — iOS grants autoplay permission
   iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0${autoplay ? '&autoplay=1' : ''}`;
-  // Always reset button to play; message handler flips it to pause once playback confirms
-  isPlaying = false;
-  refreshPlayBtn();
-}
-
-function togglePlay() {
-  const iframe = document.getElementById('spotify-iframe');
-  if (!iframe) return;
-  iframe.contentWindow.postMessage({ command: 'toggle' }, '*');
-  isPlaying = !isPlaying;
-  refreshPlayBtn();
-}
-
-// Keep play state in sync when Spotify's own controls are used
-window.addEventListener('message', e => {
-  try {
-    if (!String(e.origin).includes('spotify')) return;
-    const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-    const paused = d?.payload?.is_paused ?? d?.data?.is_paused;
-    if (typeof paused === 'boolean') { isPlaying = !paused; refreshPlayBtn(); }
-  } catch (_) {}
-});
-
-function playSVG() {
-  return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-}
-function pauseSVG() {
-  return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
-}
-
-function refreshPlayBtn() {
-  const btn = document.getElementById('btn-play-pause');
-  if (!btn) return;
-  btn.innerHTML = isPlaying ? pauseSVG() : playSVG();
-  btn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
 }
 
 // ── Utility ────────────────────────────────────────────────────────────────
@@ -156,8 +119,6 @@ function renderGame(autoplay = false) {
   const view = document.getElementById('game-view');
 
   if (!state.players.length) {
-    embedController = null;
-    isPlaying = false;
     view.innerHTML = `
       <div class="empty-state">
         <span class="empty-emoji">🎵</span>
@@ -229,23 +190,18 @@ function updateBatter(autoplay) {
       // Best path: keep iframe, just switch track
       loadTrack(trackId, autoplay);
     } else {
-      // Create iframe + play button (first time, or after a no-song player)
-      isPlaying = false;
+      // Create iframe (first time, or after a no-song player)
       section.innerHTML = `
         <div class="spotify-wrap">
           <iframe id="spotify-iframe" data-track-id="${trackId}"
             src="https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0"
-            width="100%" height="80" frameborder="0"
+            width="100%" height="152" frameborder="0"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"></iframe>
-        </div>
-        <button id="btn-play-pause" class="btn-play-pause" onclick="togglePlay()" aria-label="Play">
-          ${playSVG()}
-        </button>`;
+        </div>`;
     }
   } else {
     // Player has no song
-    if (existingFrame) isPlaying = false;
     if (section) section.innerHTML = `
       <div class="no-song-card">
         🎵 No song set for this player.<br>Add one in the <strong>Roster</strong> tab.
